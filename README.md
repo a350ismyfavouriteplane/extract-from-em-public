@@ -11,14 +11,14 @@ conda activate myenv
 
 ## Setting Up Folders
 
-Place all EM files downloaded in a folder. See the arrangement of `example-files-xxxx` for example. Use the name of this folder to access all the files inside.
+Place all EM files downloaded in a folder. Use the name of this folder to access all the files inside.
 
 ## Run Example
 
 After setting up the environment, try example command:
 
 ```sh
-python main.py example-files-1000C -rt
+python main.py <folder name> -rt
 ```
 
 ## Info About Arguments
