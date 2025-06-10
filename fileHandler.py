@@ -144,7 +144,7 @@ def largeFileSplitter(folder, tempFolder, largeFiles, splitThreshold):
 
             splitPdf(tempFolder, filename, splitThreshold)
 
-def exportTasks(allTasks, output, origFolder, files):
+def exportTasks(allTasks, output, origFolder, files, engineType):
     # allTasks pairs: [dfHeaderDict, taskDict]
     #print("exportTasks")
     #print(allTasks)
@@ -179,16 +179,135 @@ def exportTasks(allTasks, output, origFolder, files):
         logger.tprint(fullDf)
         
     filename = f"{output}_tasks_{origFolder}.csv"
-    with open(filename, 'wb') as rawFile:
-        with io.TextIOWrapper(rawFile, encoding='utf-8', errors='ignore', newline='') as f:
-            for i, df in enumerate(fullDfList):
-                f.write(f'"FILE: {files[i]}"\n')
-                df.to_csv(f, index=True, header=False)
-                f.write("\n")
+
+    while True:
+        try:
+            with open(filename, 'wb') as rawFile:
+                with io.TextIOWrapper(rawFile, encoding='utf-8', errors='ignore', newline='') as f:
+                    f.write(f'"TYPE: {engineType}"\n')  # tells which engine type
+                    f.write("\n")
+                    
+                    for i, df in enumerate(fullDfList):
+                        f.write(f'"FILE: {files[i]}"\n')
+                        df.to_csv(f, index=True, header=False)
+                        f.write("\n")
+            logger.vprint(f"{filename} saved")
+            break
+
+        except PermissionError as e:
+            print(f"Error saving {filename}")
+            print(f"PermissionError: {e}")
+            response = input("If the file is open, please close the file: (y/n): ").strip().lower()
+
+            if response != 'y':
+                logger.vprint("File not saved")
+                break
 
 
-    logger.vprint(f"{filename} saved")
+
+    
+
+def exportSteps(stepsDict, output, folder, merge):
+    #print(f"exportSteps stepsDict {stepsDict}")
+    filename = f"{output}_steps_{folder}.xlsx"
+
+    while True:
+        try:
+
+            with pd.ExcelWriter(filename, engine='xlsxwriter') as writer:
+                workbook = writer.book
+                worksheet = workbook.add_worksheet()
+                writer.sheets['Sheet1'] = worksheet
+
+                borderFormat = workbook.add_format({'border': 1})  # 1 = thin border
+
+                row = 0
+                for file, df in stepsDict.items():
+                    #print(file)
+                    #print(stepsDf)
+
+                    # write filename
+                    worksheet.write(row, 0, file)
+                    row += 1
+
+                    #startDataRow = row  # for data to start merging
+                    # write header row
+                    for colIdx, colName in enumerate(df.columns):
+                        worksheet.write(row, colIdx, colName, borderFormat)
+                    headerRow = row  # set to current row
+                    row += 1
+
+                    # write data
+                    dataStartRow = row  # set to current row
+                    nRows, nCols = df.shape
+
+                    subtaskTitles = 4  # column
+                    # check if there are subtask titles (col idx 4)
+                    if (df.iloc[:, subtaskTitles] == "").all():  # xwb has no subtask titles
+                        nonStepsCols = [0, 1, 2, 3]
+                        stepsCols = [4, 5]
+                    else:
+                        nonStepsCols = [0, 1, 2, 3, 4]
+                        stepsCols = [5]
+                
+                    for colIdx in nonStepsCols:
+                        r = 0
+
+                        if merge:
+                            while r < nRows:
+                                
+                                value = df.iat[r, colIdx]
+
+                                start = r  # start counting
+                                while ((r+1) < nRows) and (df.iat[r+1, colIdx] == value):
+                                    r += 1
+                                end = r
+
+                                chunkStart = dataStartRow + start
+                                chunkEnd = dataStartRow + end
+
+                                if start == end:  # single row
+                                    worksheet.write(chunkStart, colIdx, value, borderFormat)
+
+                                else:
+                                    worksheet.merge_range(chunkStart, colIdx,
+                                                          chunkEnd, colIdx,
+                                                          value,
+                                                          borderFormat)
+                                r += 1
+
+                            row = dataStartRow + nRows + 1  # move to next file
+                        else:
+                            while r < nRows:
+                                value = df.iat[r, colIdx]
+                                worksheet.write(dataStartRow + r, colIdx, value, borderFormat)
+                                r += 1
+
+                            row = dataStartRow + nRows + 1
+                    
+                    # don't merge steps
+                    for colIdx in stepsCols:
+                        r = 0
+                        while r < nRows:
+                            value = df.iat[r, colIdx]
+                            worksheet.write(dataStartRow + r, colIdx, value, borderFormat)
+                            r += 1
+
+                        row = dataStartRow + nRows + 1
 
 
+                break
+
+        except PermissionError as e:
+            print(f"Error saving {filename}")
+            print(f"PermissionError: {e}")
+            response = input("If the file is open, please close the file: (y/n): ").strip().lower()
+
+            if response != 'y':
+                logger.vprint("File not saved")
+                break
+
+
+            
 
 

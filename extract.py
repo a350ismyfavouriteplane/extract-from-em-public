@@ -8,6 +8,7 @@ import logger
 import dictionaries
 import pandas as pd
 from pathlib import Path
+from openpyxl import Workbook
 
 def rawText(folder, files, combine, output, origFolder):
     if combine:  # init a string for combined text if combined mode is on
@@ -59,7 +60,8 @@ def sectionSplit(fullText, engineType, tables):
 
     # change to dataframe
     df = pd.DataFrame(splitText)
-    logger.tprint(df)
+    try: logger.tprint(df)
+    except: pass
     df.columns = ["header", "main", "footer"]
     df = df.dropna()
 
@@ -209,7 +211,7 @@ def sectionSplit(fullText, engineType, tables):
         #logger.tprint(textDf)
         mainText.append(textDf)
     mainTextDf = pd.concat(mainText).reset_index(drop=True)
-    logger.tprint(mainTextDf)
+    #logger.tprint(mainTextDf)
 
     #logger.vprint()
 
@@ -282,21 +284,24 @@ def sectionSplit(fullText, engineType, tables):
         taskMarker = "TASK "
         subtaskMarker = dictionaries.subtaskIdentifierDict[engineType]
         matchTask = [idx for idx, value in mainTextDf.iloc[:, 0].items()
-                     if isinstance(value, str) and value.startswith(taskMarker)]
-        #matchSubtask = [idx for idx, value in mainTextDf.iloc[:, 0].items()
-                        #if isinstance(value, str) and value.startswith(subtaskMarker)]
+                     if (isinstance(value, str)
+                         and value.lower().startswith(taskMarker.lower())
+                         and '.' not in value
+                         and ',' not in value
+                         and 'OP ' not in value)]
         matchSubtask = [idx for idx, value in mainTextDf.iloc[:, 0].items()
                         if (isinstance(value, str)
                             and value.lower().startswith(subtaskMarker.lower())
-                            and '.' not in value)]  # not part of an instruction
-                            #and any(char.isalpha() for char in value)  # not a reference to a part
+                            and '.' not in value
+                            and ',' not in value)]  # not part of an instruction
 
         for t in range(len(matchTask)):
             taskStart = matchTask[t]
             taskEnd = matchTask[t + 1] if t + 1 < len(matchTask) else len(mainTextDf)
             
             taskName = mainTextDf.iloc[taskStart, 0]
-            taskDf = mainTextDf.iloc[taskStart+1:taskEnd]  # skip task title itself
+            #print(taskName)
+            #taskDf = mainTextDf.iloc[taskStart+1:taskEnd]  # skip task title itself
 
             # Get subtasks that fall within this task
             taskSubtaskIndexes = [idx for idx in matchSubtask if taskStart < idx < taskEnd]
@@ -345,6 +350,7 @@ def sectionSplit(fullText, engineType, tables):
 
         taskList = []
         for taskIdx in matchTask[:]:
+            #print("task title?")
             #print(mainTextDf.iloc[taskIdx])
 
             # check that they are 'real tasks'
@@ -354,16 +360,21 @@ def sectionSplit(fullText, engineType, tables):
 
 
             # get full task title
-                while mainTextDf.iloc[checkTask[-1], 0] != '':
+                while ((mainTextDf.iloc[checkTask[-1], 0] != '')
+                or mainTextDf.iloc[checkTask[2], 0].startswith("SB")
+                or mainTextDf.iloc[checkTask[2], 0].startswith("RevDate")):
                     # the task name must be longer...
                     checkTask.append(checkTask[-1] + 1)
                     #logger.tprint(mainTextDf.iloc[checkTask])
 
-                taskList.append([mainTextDf.iloc[checkTask[1], 0][5:],
-                                  ' '.join(mainTextDf.iloc[checkTask[3:-1], 0].astype(str).tolist())])
+                taskTitle = [mainTextDf.iloc[checkTask[1], 0][5:],
+                             ' '.join(mainTextDf.iloc[checkTask[3:-1], 0].astype(str).tolist())]
+                # this part needs updating for SB/RevDate tasks ^^^^
+                #print(taskTitle)
+                taskList.append(taskTitle)
                 #taskIdxList.append(checkTask[1])  # index
-                                  
-                logger.tprint(mainTextDf.iloc[checkTask])
+                #print("iloc checkTask")
+                #logger.tprint(mainTextDf.iloc[checkTask])
             #print(f"taskList: {taskList}")
             dfHeaderDict = {task[0]: task[1] for task in taskList}
             #print(f"updated dfHeaderDict: {dfHeaderDict}")
@@ -382,6 +393,8 @@ def tasks(folder, files, output, origFolder, engineType, tables):
     # init for detecting engine type
     if engineType == None:
         engineList = []
+    else:
+        engineTypeSave = engineType  # for passing to file writing
 
     for file in files:
         fullText = fileHandler.loadPages(os.path.join(folder, file))
@@ -409,6 +422,7 @@ def tasks(folder, files, output, origFolder, engineType, tables):
                 # apply splitting
                 dfHeaderDict, taskDict = sectionSplit(fullText, engineType, tables)
                 allTasks.append([dfHeaderDict, taskDict])
+                engineTypeSave = engineType
 
                 engineType = None  # reset
             else:
@@ -418,12 +432,184 @@ def tasks(folder, files, output, origFolder, engineType, tables):
         else:  # rmb to test this
             dfHeaderDict, taskDict = sectionSplit(fullText, engineType, tables)
             allTasks.append([dfHeaderDict, taskDict])
+            engineTypeSave = engineType
 
-    fileHandler.exportTasks(allTasks, output, origFolder, files)
+    fileHandler.exportTasks(allTasks, output, origFolder, files, engineTypeSave)
 
 
-def splitSteps(df):
+def splitSteps(df, output, folder, merge):
     logger.vprint(df)
+    logger.tprint(df)
+
+    # get engine type
+    typeCell = df.loc[0, 'origIdx']
+    if isinstance(typeCell, str) and typeCell.startswith('TYPE: '):
+        engineType = typeCell[6:]
+
+    # split files into dictionary
+    files = {}
+    currIdx = None
+    buffer = []
+
+    for _, row in df.iloc[1:].iterrows():
+        cell = row['origIdx']
+        if isinstance(cell, str) and cell.startswith('FILE: '):
+            # save previous buffer (if it exists)
+            if currIdx is not None:
+                files[currIdx] = pd.DataFrame(buffer)
+            # start new group
+            currIdx = cell
+            buffer = []
+        else:
+            # only accumulate rows after we've seen a FILE:
+            if currIdx is not None:
+                buffer.append(row)
+
+    # for last file
+    if currIdx is not None:
+        files[currIdx] = pd.DataFrame(buffer)
+
+    print(f"files dict: {files}")
+    print(len(files))
+
+    ignoreEnd = dictionaries.taskEndText.get(engineType)
+    #print(ignoreEnd)
+    stepsDict = {}
+    linePattern = r"[-–—‒―−]"  # for ignoring lines with only dashes
+
+    for file, fileDf in files.items():
+        print("file::")
+        print(file)
+        logger.tprint(fileDf)
+
+        # create output dataframe
+        columns = ['origIdx', 'Task', 'Task Title', 'Subtask', 'Subtask Title', 'Step(s)']
+        rows = []
+
+        # split into steps
+        #for stepsList in fileDf['Steps']:
+        fileDf = fileDf.reset_index(drop=True)
+        for i, stepsList in enumerate(fileDf['Steps']):
+            #assign other columns
+            origIdx = fileDf.loc[i, 'origIdx']
+            task = fileDf.loc[i, 'Task']
+            taskTitle = fileDf.loc[i, 'Task Title']
+            subtask = fileDf.loc[i, 'Subtask']
+            subtaskTitle = fileDf.loc[i, 'Subtask Title']
+
+            steps = stepsList.split(" | ")
+            print(f"steps: {steps}")
+
+            for i, line in enumerate(steps):
+                # drop 'end' text
+                if (ignoreEnd != '') and (ignoreEnd in line):
+                    steps = steps[:i]
+                    break
+
+            cleanSteps = []
+            buffer = []
+
+            # >> there are issues here with 1000C losing steps! <<
+
+            # cld put this earlier but its probably just an efficiency thing
+            for i, line in enumerate(steps):
+                line = line.strip()
+                
+                # if line is blank, save buffer
+                if line == '':
+                    if buffer:
+                        # different joiner for text/number
+                        #print(buffer)
+                        #stepStr = ''
+                        # have to check each first and last character
+                        if len(buffer) == 1:
+                            stepStr = buffer[0]
+                            cleanSteps.append(stepStr)
+
+                        elif len(buffer) > 1:
+                            stepStr = buffer[0]
+                            j = 0
+                            while j < (len(buffer) - 1):  # so we dont get an index error
+                                if buffer[j][-1].isalnum() or buffer[j+1][0].isalnum():
+                                    stepStr += ' ' + buffer[j+1]
+                                else:
+                                    stepStr += buffer[j+1]
+                                j += 1
+                            cleanSteps.append(stepStr)
+
+                        else:  # anything else
+                            cleanSteps.append(' '.join(buffer))
+
+                        print(f"stepStr = {stepStr}")
+                        #cleanSteps.append(' '.join(buffer))
+                        buffer = []
+                    i += 1
+                    
+                    #print(f"buffer = {buffer}")
+
+                # if line is not blank, add to buffer
+                else:
+                    unDash = re.sub(linePattern, "", line)
+
+                    if unDash == "":
+                        # ignore lines which only have '-'
+                        # there's some issue with types of dashes, will come back later
+                        pass
+                    else:
+                        buffer.append(line)
+
+                #print(f"buffer = {buffer}")
+
+                # resplit by sentence
+                cleanStepsTemp = []
+                for chunk in cleanSteps:
+                    #print(f"chunk: {chunk}")
+
+                    if any(re.match(pattern, chunk) for pattern in dictionaries.stepIgnoreText.get(engineType, [])):
+                        continue
+
+                    sentences = re.findall(r'[^.]+(?:\.|\n|$)', chunk)
+                    temp = []
+
+                    for s in sentences:
+                        s = s.strip()
+                        alphaCount = sum(c.isalpha() for c in s)
+
+                        if ((alphaCount < 4) or (s and s[0].islower())) and temp:
+                            temp[-1] += ' ' + s
+                        else:
+                            temp.append(s)
+
+                    cleanStepsTemp.extend(temp)
+                    #cleanStepsTemp.extend([s.strip() for s in sentences])
+                # save to cleanSteps
+                cleanSteps = cleanStepsTemp
+
+            # retrieve other column info and save to stepsDict
+            #print(f"row, other columns: {origIdx}, {task}, {taskTitle}, {subtask}, {subtaskTitle}")
+            
+            for step in cleanSteps:
+                rows.append([origIdx, task, taskTitle, subtask, subtaskTitle, step])
+        stepsDf = pd.DataFrame(rows, columns=columns)
+
+        logger.tprint(stepsDf)
+        #rows.append([origIdx, task, taskTitle, subtask, subtaskTitle, ])
+
+        # save to stepsDict
+        stepsDict[file] = stepsDf
+        
+    #print(f"stepsDict: {stepsDict}")
+    fileHandler.exportSteps(stepsDict, output, folder, merge)
+
+
+
+
+
+
+
+
+
+
 
 
 

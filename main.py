@@ -53,6 +53,10 @@ def parse_arguments():
     parser.add_argument('-s', '--steps',
                         action='store_true',
                         help='Create separate cells for each step')
+    parser.add_argument('-m', '--merge',
+                        action='store_true',
+                        #dest='merge',
+                        help='Merge cells under the same task/subtask')
 
     # file handling modes
     parser.add_argument('-st', '--splitThreshold',
@@ -157,9 +161,17 @@ if __name__ == "__main__":
         if args.steps:
             filename = f"{args.output}_tasks_{args.folder}.csv"
             if filename in os.listdir():
-                df = pd.read_csv(filename)  # not sure why reading it gives 2 columns but it helps
-                #logger.tprint(df)
-                extract.splitSteps(df)
+                
+                filenameList = []
+                taskDfs = []
+
+                col_names = ['origIdx','Task','Task Title','Subtask','Subtask Title','Steps']
+                # read, forcing 6 columns; missing entries become NaN
+                df = pd.read_csv(filename, header=None, names=col_names, sep=',', engine='python')
+                df = df.fillna("")  # adding
+
+                extract.splitSteps(df, args.output, args.folder, args.merge)
+
 
 
             else:
@@ -171,6 +183,7 @@ if __name__ == "__main__":
             if item.is_dir() and item.name.startswith('temp'):
                 logger.vprint(f'Deleting: {item}')
                 shutil.rmtree(item)
+    else: logger.vprint("Temporary files will be kept")
 
     logger.vprint("Script finished successfully")
     sys.exit(0)

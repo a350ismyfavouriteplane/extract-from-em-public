@@ -1,0 +1,15 @@
+! untested things
+1. engine type specified
+2. different lengths of task/subtask titles
+
+! issues
+1. SB tasks keep showing the subtask title as the SB number and not the actual title
+reference: TASK 72-32-41-200-801 SUBTASK 72-32-41-220-115
+2. Sometimes 'Export Rating' shows up as the subtask title
+reference: TASK 72-32-43-200-801 SUBTASK 72-32-43-220-149
+3. Sometimes when RevDate appears after the task, it gets read as the task title
+reference: TASK 72-32-42-100-812 SUBTASK 72-32-42-110-072-001
+reference: TASK 72-32-42-200-801 SUBTASK 72-32-42-865-062
+4. listed subtasks in the reference list keeps getting detected as an actual subtask
+   - filter by subtask content?
+5. Step number or subtstep number cannot be retained accurately when exported to txt (not sure if fixable)
