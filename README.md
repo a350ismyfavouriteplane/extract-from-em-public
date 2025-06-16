@@ -1,6 +1,12 @@
 # extract-from-em
 
+This program converts the EM file downloaded from `.pdf` a more useful structure.
+
+![what this thing does](https://github.com/user-attachments/assets/f89b3829-10ab-4e58-bb4a-39b478645244)
+
 ## Setting Up the Environment
+
+Recommended to use Anaconda Prompt.
 
 To set up the Conda environment, run:
 
@@ -35,6 +41,7 @@ After setting up environment, try:
 5. For tasks and subtasks with associated steps, but with task / task title and subtask / subtask title merged for readability (bad for copy-pasting):
    - `python main.py <folder name> -t -s -m`
    - `python main.py <folder name> --tasks --steps --merge`
+   *It is generally advisable to use only `--tasks --steps` if there is no need for merged steps because info can be lost.*
 
 ### For debugging:
 6. For intermediate dataframes to be printed (e.g. while extracting tasks and steps):
@@ -63,12 +70,45 @@ This has also been tested on non-EM files such as CIR.
 - `-t, --tasks`: Tasks mode. Extracts task, task number, subtask, subtask number, and body text.
 - `-s, --steps`: Steps mode. Prints each step in a subtask on a different line. Must be used after `-t, --tasks`.
 - `-m, --merge`: Merges cells unedr the same task / task title / subtask / subtask title. Default: OFF.
--  `-e, --engineType`: Specify engine type (optional): ['1000', '7000', '900', 'XWB']. If it is not specified, the type will be detected automatically. Use this only when the layout of the pdf has been changed, but most of the time this is not necessary to be specified at all.
+- `-e, --engineType`: Specify engine type (optional): ['1000', '7000', '900', 'XWB']. If it is not specified, the type will be detected automatically. Use this only when the layout of the pdf has been changed, but most of the time this is not necessary to be specified at all.
 
 ### File Handling Modes
-- `-st, --splitThreshold`: Specify the threshold for number of pages in a file which will consider the file large. If the file is large, a temporary folder will be created to split all large files into smaller chunks for extraction to reduce data loss in case the program crashes. The temporary folder will be deleted if the program completes properly. Default: 200.
+- `-st, --splitThreshold`: Specify the threshold for number of pages in a file which will consider the file large. If the file is large, a temporary folder will be created to split all large files into smaller chunks for extraction to reduce data loss in case the program crashes. The temporary folder will be deleted if the program completes properly. Use with care because the program won't work properly if the chunks are too small as full tasks can't be detected, but it will slow down significantly with big files.
 - `-keep, --keepTemp`: Keep temporary files generated during the script. Use this if the program keeps crashing.
 
 Note: `-rt, --rawText` and `-t, --tasks` can be called at the same time, but the files will be read again for each argument.
 
 Note: `-s, --steps` will read the file created from tasks as an intermediate step. Modifying the file will affect if the file can be read or may have errors.
+
+## Detailed Screenshots
+
+Setting up environment (after first time) and extracting raw text:
+
+Non-combined: <img width="496" alt="rawtext" src="https://github.com/user-attachments/assets/a7350072-ca15-4360-a884-23d0d2d3fd3f" />  
+Combined: <img width="497" alt="rawtext combined" src="https://github.com/user-attachments/assets/84eb3df5-1a66-4b58-8a68-4b89d0b00b69" />  
+
+Outputs for non-combined and combined raw text: <img width="177" alt="rawtext outputs" src="https://github.com/user-attachments/assets/224a891f-e9e6-4ad9-afb9-51658287cb1b" />  
+
+Don't mind if the script says it's deleting something, those are temporary files, to fix long names and/or large file sizes:  
+<img width="174" alt="deleting" src="https://github.com/user-attachments/assets/57d328fd-3b0a-4b65-9c1d-b6e80a257cb3" />  
+
+Tasks: <img width="474" alt="tasks" src="https://github.com/user-attachments/assets/325a8f4d-b1f9-413f-b1a4-159faa54f7d2" />  
+Steps for each task: <img width="490" alt="tasks steps" src="https://github.com/user-attachments/assets/35728b4e-668c-48c3-9373-853ab5ac29f3" />  
+
+Outputs for tasks and steps: <img width="157" alt="tasks steps saved" src="https://github.com/user-attachments/assets/92f08195-ce08-4996-843e-ddaebaf69c74" />  
+*Steps will create 2 output files as the steps file is generated from the tasks file.*
+
+### Screenshot References
+
+Raw text:  
+<img width="539" alt="rawtext ()" src="https://github.com/user-attachments/assets/eff0ff29-793b-4ce2-a7c3-b4fead15b52c" />
+
+Tasks and subtasks:  
+<img width="688" alt="tasks example" src="https://github.com/user-attachments/assets/7fe82b63-bf35-44ba-ae60-41550dcf1741" />
+
+Subtask steps:  
+<img width="847" alt="tasks steps example" src="https://github.com/user-attachments/assets/ef275a14-fd42-47a8-9633-26cf415e3d83" />
+
+Subtask steps (each subtask is merged into a cell):  
+<img width="943" alt="tasks steps merge example" src="https://github.com/user-attachments/assets/dbe72c64-4bd7-48c1-9bd2-afb233a182b9" />
+

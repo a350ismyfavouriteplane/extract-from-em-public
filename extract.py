@@ -294,7 +294,7 @@ def sectionSplit(fullText, engineType, tables):
                             and value.lower().startswith(subtaskMarker.lower())
                             and '.' not in value
                             and ',' not in value)]  # not part of an instruction
-
+    
         for t in range(len(matchTask)):
             taskStart = matchTask[t]
             taskEnd = matchTask[t + 1] if t + 1 < len(matchTask) else len(mainTextDf)
@@ -469,17 +469,12 @@ def splitSteps(df, output, folder, merge):
     if currIdx is not None:
         files[currIdx] = pd.DataFrame(buffer)
 
-    print(f"files dict: {files}")
-    print(len(files))
-
     ignoreEnd = dictionaries.taskEndText.get(engineType)
     #print(ignoreEnd)
     stepsDict = {}
     linePattern = r"[-–—‒―−]"  # for ignoring lines with only dashes
 
     for file, fileDf in files.items():
-        print("file::")
-        print(file)
         logger.tprint(fileDf)
 
         # create output dataframe
@@ -498,7 +493,7 @@ def splitSteps(df, output, folder, merge):
             subtaskTitle = fileDf.loc[i, 'Subtask Title']
 
             steps = stepsList.split(" | ")
-            print(f"steps: {steps}")
+            #print(f"steps: {steps}")
 
             for i, line in enumerate(steps):
                 # drop 'end' text
@@ -519,8 +514,6 @@ def splitSteps(df, output, folder, merge):
                 if line == '':
                     if buffer:
                         # different joiner for text/number
-                        #print(buffer)
-                        #stepStr = ''
                         # have to check each first and last character
                         if len(buffer) == 1:
                             stepStr = buffer[0]
@@ -540,7 +533,7 @@ def splitSteps(df, output, folder, merge):
                         else:  # anything else
                             cleanSteps.append(' '.join(buffer))
 
-                        print(f"stepStr = {stepStr}")
+                        #print(f"stepStr = {stepStr}")
                         #cleanSteps.append(' '.join(buffer))
                         buffer = []
                     i += 1

@@ -61,8 +61,7 @@ def parse_arguments():
     # file handling modes
     parser.add_argument('-st', '--splitThreshold',
                         type=int,
-                        default=200,
-                        help='Set page number threshold for large files to be split (default: 200)')
+                        help='Set page number threshold for large files to be split')
     parser.add_argument('-keep', '--keepTemp',
                         action='store_true',
                         help='Keep temporary files')
@@ -126,30 +125,33 @@ if __name__ == "__main__":
         extractFolder = args.folder
         logger.vprint(f"Working folder: {extractFolder}")
 
-    largeFiles = fileHandler.detectLargeFiles(extractFolder, files, args.splitThreshold)
+    # this feature is removed from running by default due to it causing issues with slicing pages and losing tasks
+    # now it only does if splitThershold is specified
+    if args.splitThreshold != None:
+        largeFiles = fileHandler.detectLargeFiles(extractFolder, files, args.splitThreshold)
 
-    if largeFiles:
-        tempFolder_LF = "temp_LF"
-        logger.vprint(f"Large files detected: {largeFiles}")
-        logger.vprint(f"Temp folder will be created: {tempFolder_LF}")
+        if largeFiles:
+            tempFolder_LF = "temp_LF"
+            logger.vprint(f"Large files detected: {largeFiles}")
+            logger.vprint(f"Temp folder will be created: {tempFolder_LF}")
 
-        fileHandler.largeFileSplitter(extractFolder, tempFolder_LF, largeFiles, args.splitThreshold)
-        # change this when done       ^^^^^^^^^^^
+            fileHandler.largeFileSplitter(extractFolder, tempFolder_LF, largeFiles, args.splitThreshold)
+            # change this when done       ^^^^^^^^^^^
 
-        # specify folder to extract from
-        extractFolder = tempFolder_LF
-        files = fileHandler.getFileList(extractFolder)  # retrieve all files again
-        logger.vprint(f"Working folder: {extractFolder}")
+            # specify folder to extract from
+            extractFolder = tempFolder_LF
+            files = fileHandler.getFileList(extractFolder)  # retrieve all files again
+            logger.vprint(f"Working folder: {extractFolder}")
 
-    else:
-        if longNames:
-            extractFolder = tempFolder_LN
         else:
-            extractFolder = args.folder
+            if longNames:
+                extractFolder = tempFolder_LN
+            else:
+                extractFolder = args.folder
 
-        logger.vprint(f"No potential issues with number of pages, extracting from folder: {extractFolder}")
-        #extractFolder = args.folder
-        logger.vprint(f"Working folder: {extractFolder}")
+            logger.vprint(f"No potential issues with number of pages, extracting from folder: {extractFolder}")
+            #extractFolder = args.folder
+            logger.vprint(f"Working folder: {extractFolder}")
 
     if args.rawText:
         extract.rawText(extractFolder, files, args.combine, args.output, args.folder)
