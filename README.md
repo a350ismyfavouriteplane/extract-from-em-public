@@ -84,16 +84,16 @@ Note: `-s, --steps` will read the file created from tasks as an intermediate ste
 
 Setting up environment (after first time) and extracting raw text:
 
-Non-combined: <img width="496" alt="rawtext" src="https://github.com/user-attachments/assets/a7350072-ca15-4360-a884-23d0d2d3fd3f" />  
-Combined: <img width="497" alt="rawtext combined" src="https://github.com/user-attachments/assets/84eb3df5-1a66-4b58-8a68-4b89d0b00b69" />  
+Non-combined: [Image removed for privacy] 
+Combined: [Image removed for privacy] 
 
 Outputs for non-combined and combined raw text: <img width="177" alt="rawtext outputs" src="https://github.com/user-attachments/assets/224a891f-e9e6-4ad9-afb9-51658287cb1b" />  
 
 Don't mind if the script says it's deleting something, those are temporary files, to fix long names and/or large file sizes:  
 <img width="174" alt="deleting" src="https://github.com/user-attachments/assets/57d328fd-3b0a-4b65-9c1d-b6e80a257cb3" />  
 
-Tasks: <img width="474" alt="tasks" src="https://github.com/user-attachments/assets/325a8f4d-b1f9-413f-b1a4-159faa54f7d2" />  
-Steps for each task: <img width="490" alt="tasks steps" src="https://github.com/user-attachments/assets/35728b4e-668c-48c3-9373-853ab5ac29f3" />  
+Tasks: [Image removed for privacy] 
+Steps for each task: [Image removed for privacy] 
 
 Outputs for tasks and steps: <img width="157" alt="tasks steps saved" src="https://github.com/user-attachments/assets/92f08195-ce08-4996-843e-ddaebaf69c74" />  
 *Steps will create 2 output files as the steps file is generated from the tasks file.*
